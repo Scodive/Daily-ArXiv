@@ -50,15 +50,20 @@
                 <pre id="output-content"></pre>
             </div>
             <div id="download-buttons">
-                <button id="download-txt-button">下载解读文本 (.txt)</button>
-                <button id="download-pdf-button">下载原文PDF</button>
+                <button id="download-txt-button" class="button" disabled>下载解读文本 (.txt)</button>
+                <button id="download-pdf-button" class="button" disabled>下载原文PDF</button>
             </div>
         </section>
-    </main>
 
-    <footer>
-        <p>安全提示：API密钥当前在前端处理，公开部署存在风险。建议采用后端API调用方案。</p>
-    </footer>
+        <section id="recommendations">
+            <h2>近期解读推荐</h2>
+            <div id="recommendation-cards" class="cards-container">
+                <!-- Recommendation cards will be loaded here by JavaScript -->
+                <p id="recommendations-loading">正在加载推荐...</p>
+            </div>
+        </section>
+
+    </main>
 
     <script src="script.js"></script>
 </body>
