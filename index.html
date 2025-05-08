@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArXiv论文AI解读工具</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 引入 pdf.js 库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // 设置 workerSrc，指向 pdf.worker.min.js 的路径
+        // 对于线上部署，您可能需要将此文件托管在与 index.html 相同的地方或指定正确的CDN路径
+        // 本地测试时，如果直接打开html文件，可能需要调整或通过本地服务器运行
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        } else {
+            console.warn("pdf.js library not loaded yet. Worker SRC not set.");
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>ArXiv论文AI解读与下载</h1>
+        <a href="https://github.com/YOUR_GITHUB_USERNAME/Daily-ArXiv" target="_blank" id="github-link">GitHub项目地址</a>
+    </header>
+
+    <main>
+        <section id="intro">
+            <p>本工具可以帮助您快速解读ArXiv上的AI论文。输入论文的PDF链接，即可获取由Gemini AI生成的科普风格解读，并提供原文PDF和解读文本的下载。</p>
+        </section>
+
+        <section id="input-section">
+            <input type="url" id="arxiv-url" placeholder="请输入ArXiv论文的PDF链接 (例如: https://arxiv.org/pdf/xxxx.xxxxx.pdf)">
+            <button id="process-button">解读论文</button>
+        </section>
+
+        <section id="status-section">
+            <p id="status-message"></p>
+        </section>
+
+        <section id="output-section" style="display:none;">
+            <h2 id="output-title">解读结果</h2>
+            <div id="output-content-wrapper">
+                <pre id="output-content"></pre>
+            </div>
+            <div id="download-buttons">
+                <button id="download-txt-button">下载解读文本 (.txt)</button>
+                <button id="download-pdf-button">下载原文PDF</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>请注意：API密钥在前端处理，公开部署存在安全风险。建议后续使用后端处理API调用。</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html> 

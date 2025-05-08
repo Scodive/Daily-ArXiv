@@ -1,0 +1,153 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    background-color: #333;
+    color: #fff;
+    padding: 1rem 2rem;
+    text-align: center;
+    position: relative;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+#github-link {
+    position: absolute;
+    top: 1.5rem;
+    right: 2rem;
+    color: #fff;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+#github-link:hover {
+    text-decoration: underline;
+}
+
+main {
+    flex: 1;
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    background-color: #fff;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+#intro p {
+    font-size: 1.1rem;
+    color: #555;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+#input-section {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+}
+
+#arxiv-url {
+    flex-grow: 1;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+#process-button, #download-txt-button, #download-pdf-button {
+    padding: 0.8rem 1.2rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+#process-button:hover, #download-txt-button:hover, #download-pdf-button:hover {
+    background-color: #0056b3;
+}
+
+#process-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#status-section {
+    text-align: center;
+    margin-bottom: 1rem;
+    min-height: 1.5em; /* Reserve space for status message */
+}
+
+#status-message {
+    font-weight: bold;
+}
+
+#status-message.error {
+    color: #d9534f;
+}
+
+#status-message.success {
+    color: #5cb85c;
+}
+
+#output-section h2 {
+    text-align: center;
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+#output-content-wrapper {
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    padding: 1rem;
+    border-radius: 4px;
+    max-height: 400px; /* Or adjust as needed */
+    overflow-y: auto;   /* Allow scrolling for long content */
+    margin-bottom: 1rem;
+}
+
+#output-content {
+    white-space: pre-wrap; /* Preserve line breaks and spaces */
+    word-wrap: break-word; /* Break long words */
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font-size: 0.9rem;
+    color: #222;
+}
+
+#download-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 1.5rem;
+}
+
+footer {
+    text-align: center;
+    padding: 1rem;
+    background-color: #333;
+    color: #aaa;
+    font-size: 0.8rem;
+    margin-top: auto; /* Pushes footer to the bottom */
+}
+
+footer p {
+    margin: 0;
+} 

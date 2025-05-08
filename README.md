@@ -119,3 +119,47 @@
 *   提供配置选项，允许用户通过配置文件或命令行参数修改API密钥、处理论文数量等。
 *   增加对已处理论文的记录，避免重复处理。
 *   完善错误处理和日志记录机制。
+
+## 前端界面 (HTML)
+
+本项目还包含一个基本的前端HTML界面 (`index.html`, `style.css`, `script.js`)，允许用户通过浏览器直接与论文解读功能交互。
+
+**前端功能：**
+
+*   输入ArXiv论文的PDF链接。
+*   在浏览器端使用 `pdf.js` 提取PDF文本。
+*   **直接在前端调用Google Gemini API** 生成论文解读。
+*   显示生成的解读文章标题和内容。
+*   提供原文PDF下载按钮。
+*   提供解读文本的`.txt`文件下载按钮。
+
+**运行前端界面：**
+
+1.  **配置API密钥**：打开 `script.js` 文件，将文件顶部的 `YOUR_GEMINI_API_KEY` 替换为您真实的Google Gemini API密钥。
+    ```javascript
+    const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'; 
+    ```
+2.  **配置GitHub链接**：打开 `index.html` 文件，修改文件头部的GitHub项目链接为您自己的仓库地址。
+3.  **本地测试**：
+    *   由于浏览器安全策略 (CORS) 和 `pdf.js` worker的加载，直接通过 `file:///` 协议打开 `index.html` 可能无法正常工作。
+    *   建议通过一个本地HTTP服务器来运行。如果您安装了Python，可以在项目根目录下运行：
+        ```bash
+        python -m http.server
+        ```
+        然后在浏览器中访问 `http://localhost:8000` (或Python提示的其他端口)。
+4.  **Vercel部署**：您可以将这三个文件 (`index.html`, `style.css`, `script.js`) 直接部署到Vercel。但请再次注意下面的安全警告。
+
+**！！！重要安全警告！！！**
+
+*   当前前端实现**直接在JavaScript中嵌入并使用您的Google Gemini API密钥**。这意味着任何访问您部署的网站的人都可以通过查看源代码轻松获取您的API密钥。
+*   **这会带来极大的安全风险，可能导致您的API密钥被盗用和产生未授权的费用。**
+*   **强烈建议**：如果您计划将此前端公开部署（例如在Vercel上），**请勿使用当前的前端API调用方式**。您应该：
+    1.  创建一个后端服务（例如，使用Vercel Serverless Functions）。
+    2.  将Gemini API密钥安全地存储在后端服务的环境变量中。
+    3.  前端通过调用您的后端服务来间接触发Gemini API调用。
+    4.  这样可以保护您的API密钥不被泄露。
+
+**前端CORS问题：**
+
+*   直接从前端JavaScript请求 `https://arxiv.org/pdf/...` 链接的PDF文件可能会因CORS策略而被ArXiv服务器拒绝。如果发生这种情况，浏览器控制台会显示CORS相关的错误。
+*   解决方案包括使用CORS代理，或通过后端（如Vercel Serverless Function）来中继PDF的下载请求。
