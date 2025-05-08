@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ArXiv论文AI解读工具</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <!-- 引入 pdf.js 库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -26,15 +27,20 @@
 
     <main>
         <section id="intro">
-            <p>本工具可以帮助您快速解读ArXiv上的AI论文。输入论文的PDF链接，即可获取由Gemini AI生成的科普风格解读，并提供原文PDF和解读文本的下载。</p>
+            <h2>简介</h2>
+            <p>本工具助您快速洞悉ArXiv上的AI前沿论文。只需输入论文的PDF链接，即可获得由Gemini AI精心生成的科普风格解读，并可便捷下载原文PDF及解读文本。</p>
         </section>
 
         <section id="input-section">
+            <label for="arxiv-url" class="sr-only">ArXiv PDF 链接</label>
             <input type="url" id="arxiv-url" placeholder="请输入ArXiv论文的PDF链接 (例如: https://arxiv.org/pdf/xxxx.xxxxx.pdf)">
             <button id="process-button">解读论文</button>
         </section>
 
         <section id="status-section">
+            <div class="spinner-wrapper" style="display: none;">
+                <div class="spinner"></div>
+            </div>
             <p id="status-message"></p>
         </section>
 
@@ -51,7 +57,7 @@
     </main>
 
     <footer>
-        <p>请注意：API密钥在前端处理，公开部署存在安全风险。建议后续使用后端处理API调用。</p>
+        <p>安全提示：API密钥当前在前端处理，公开部署存在风险。建议采用后端API调用方案。</p>
     </footer>
 
     <script src="script.js"></script>
