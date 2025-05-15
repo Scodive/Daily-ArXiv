@@ -150,63 +150,49 @@ ${truncatedPaperTextForArticle}
         generateLatexButton.disabled = true;
 
         try {
-            const truncatedPaperTextForLatex = rawPdfText.substring(0, 28000); // Slightly less for prompt + content safety
+            const truncatedPaperTextForLatex = rawPdfText.substring(0, 28000);
 
-            const latexPrompt = `作为一位专业的学术报告幻灯片（使用 LaTeX Beamer）制作者，你的任务是根据以下科研论文的文本，并严格遵循提供的 Beamer 模板风格（如主题 CambridgeUS, 颜色主题 wolverine），生成一份详细介绍该论文的 LaTeX Beamer 源码。
+            const escapeLatex = (text) => {
+                if (typeof text !== 'string') return '';
+                return text.replace(/[&%$#_{}\\\\\\[\\]~^]/g, (match) => {
+                    const replacements = {
+                        '&': '\\\\&',
+                        '%': '\\\\%',
+                        '$': '\\\\$',
+                        '#': '\\\\#',
+                        '_': '\\\\_',
+                        '{': '\\\\{',
+                        '}': '\\\\}',
+                        '~': '\\\\textasciitilde{}',
+                        '^': '\\\\textasciicircum{}',
+                        '\\\\': '\\\\textbackslash{}',
+                        '[': '{[}', // Less common, but can be problematic
+                        ']': '{]}'
+                    };
+                    return replacements[match] || match;
+                });
+            };
 
-**严格遵循以下 LaTeX Beamer 结构和命令：**
+            const safeArticleTitle = escapeLatex(articleTitle);
+            const shortSafeArticleTitle = escapeLatex(articleTitle.substring(0,40));
 
-1.  **文档类与主题**：
-    *   \`\\documentclass{beamer}\`
-    *   \`\\usetheme{CambridgeUS}\`
-    *   \`\\usecolortheme{wolverine}\`
-    *   包含包: \`\\usepackage{graphicx}\`, \`\\usepackage{booktabs}\`, \`\\usepackage[UTF8,noindent]{ctexcap}\`, \`\\usepackage[bookmarks=true]{hyperref}\`.
+            const latexPrompt = `You are an expert LaTeX Beamer presentation creator. Your mission is to generate a complete LaTeX Beamer source file (.tex) based on the research paper text provided below. All textual content in the presentation (titles, section names, bullet points, summaries, etc.) MUST be in ENGLISH.\n\nStrictly adhere to the following LaTeX Beamer template structure. Replace placeholders like '[FULL_ENGLISH_PAPER_TITLE]', '[ENGLISH_PAPER_AUTHORS]', section content comments, etc., with relevant information extracted FROM THE PROVIDED PAPER TEXT, ensuring all such generated content is in ENGLISH.\n\nLaTeX Beamer Template to use (fill in the content in ENGLISH):\n\`\`\`latex\n\\documentclass{beamer}\n\n\\mode<presentation> {\n\\usetheme{CambridgeUS}\n\\usecolortheme{wolverine}\n% \\setbeamertemplate{navigation symbols}{}\n}\n\n\\usepackage{graphicx}\n\\usepackage{booktabs}\n\\usepackage[UTF8,noindent]{ctexcap} % Retained as per original template, ensure English output is compatible.\n\\usepackage[bookmarks=true]{hyperref}\n\n% --- TITLE PAGE --- \n\\title[${shortSafeArticleTitle}]{${safeArticleTitle}}\n\\author{[Paper Authors - Extracted, IN ENGLISH]}\n\\institute[[Institute Abbreviation - Extracted, IN ENGLISH]]{\n  [Full Institute Name - Extracted, IN ENGLISH] \\\\\n  \\medskip\n  % \\textit{[Optional: Author Email]}\n}\n\\date{\\today}\n\n\\begin{document}\n\n\\begin{frame}\n  \\titlepage\n\\end{frame}\n\n\\begin{frame}\n  \\frametitle{Overview}\n  \\tableofcontents\n\\end{frame}\n\n% --- PRESENTATION SLIDES (ALL CONTENT MUST BE GENERATED IN ENGLISH) --- \n\n\\section{Introduction}\n  \\begin{frame}\n    \\frametitle{Introduction: Background and Contributions}\n    % - Extract key background points from the paper (in English).\n    % - Summarize main contributions (in English).\n    % - Use itemize for bullet points.\n    \\begin{itemize}\n      \\item Placeholder: Point 1 about background or contribution (in English).\n      \\item Placeholder: Point 2 about background or contribution (in English).\n    \\end{itemize}\n  \\end{frame}\n\n\\subsection{Problem Statement} % Example: adapt as needed\n  \\begin{frame}\n    \\frametitle{Problem Statement}\n    % - Clearly state the problem the paper addresses (in English).\n  \\end{frame}\n\n\\section{Related Work} % If significant and present in the paper\n  \\begin{frame}\n    \\frametitle{Related Work}\n    % - Summarize key related works discussed in the paper (in English).\n  \\end{frame}\n\n\\section{Methodology}\n  \\begin{frame}\n    \\frametitle{Proposed Method / Framework}\n    % - Describe the core methodology of the paper (in English).\n    % - Use blocks or columns if helpful for clarity.\n  \\end{frame}\n  \\subsection{Key Components} % Example: adapt as needed\n  \\begin{frame}\n    \\frametitle{Key Components / Algorithm}\n    % - Detail specific parts of the method or algorithm (in English).\n    % \\begin{block}{Component 1 (English)}\n    %   Details...\n    % \\end{block}\n  \\end{frame}\n\n\\section{Experiments and Results}\n  \\begin{frame}\n    \\frametitle{Experimental Setup}\n    % - Describe datasets, metrics, and setup (in English).\n  \\end{frame}\n  \\begin{frame}\n    \\frametitle{Results and Discussion}\n    % - Present key findings and results (in English).\n    % - Use itemize or tables if appropriate.\n    % E.g.,\n    % \\begin{table}\n    %   \\centering\n    %   \\begin{tabular}{ll}\n    %     \\toprule\n    %     Metric & Value \\\\\n    %     \\midrule\n    %     Accuracy & 90% \\\\\n    %     \\bottomrule\n    %   \\end{tabular}\n    %   \\caption{Key experimental results (English).}\n    % \\end{table}\n  \\end{frame}\n\n\\section{Conclusion}\n  \\begin{frame}\n    \\frametitle{Conclusion and Future Work}\n    % - Summarize the paper\'s conclusions (in English).\n    % - Mention any future work suggested (in English).\n  \\end{frame}\n\n% \\section{References} % Optional, if key references are highlighted in slides\n%   \\begin{frame}\n%     \\frametitle{Key References}\n%     \\footnotesize{\n%       \\begin{thebibliography}{99}\n%         % \\bibitem[Smith, 2023]{ref1} Smith, J. et al. (2023). Title of relevant paper. \\emph{Journal}.\n%       \\end{thebibliography}\n%     }\n%   \\end{frame}\n\n\\begin{frame}\n  \\Huge{\\centerline{Thank You}}\n\\end{frame}\n\n\\end{document}\n\`\`\`\n\nPaper text to process:\n---\n${truncatedPaperTextForLatex}\n---\n\nImportant Output Instructions:\n1.  ONLY output the complete LaTeX Beamer source code, starting with \\documentclass{beamer} and ending with \\end{document}.\n2.  Ensure all textual content derived from the paper is in ENGLISH.\n3.  Do NOT include any Markdown formatting (like \`\`\`latex or \`\`\`) around the LaTeX code output.\n4.  Faithfully use the provided Beamer theme and packages.\n5.  Properly escape any special LaTeX characters within the content extracted from the paper (e.g., %, $, _, #, &, {, }).\n`;
 
-2.  **标题页信息** (从论文文本中提取或合理生成)：
-    *   \`\\title[${articleTitle.substring(0,30)}...]{${articleTitle}}\`
-    *   \`\\author{[从论文文本中提取的主要作者，若难提取则用 "研究团队"]}\`
-    *   \`\\institute[简称]{[提取的机构名，若难提取则用 "相关研究机构"]}\`
-    *   \`\\date{\\today}\`
-
-3.  **文档结构**：
-    *   \`\\begin{document}\` ... \`\\end{document}\`
-    *   第一帧: \`\\begin{frame}\\titlepage\\end{frame}\`
-    *   第二帧: \`\\begin{frame}\\frametitle{Overview}\\tableofcontents\\end{frame}\`
-
-4.  **内容组织 (\`\\section\` 和 \`\\subsection\` 会自动更新目录)：**
-    *   **引言 (Introduction)**: \`\\section{引言}\`
-        *   \`\\begin{frame}\\frametitle{研究背景/主要贡献}\` ... \`\\end{frame}\`
-    *   **相关工作 (Related Work)** (若有): \`\\section{相关工作}\`
-    *   **方法/模型 (Methodology/Model)**: \`\\section{方法与模型}\`
-        *   可使用 \`\\subsection{子标题}\`
-        *   使用 \`\\begin{block}{关键点}\` ... \`\\end{block}\`
-    *   **实验/结果 (Experiments/Results)**: \`\\section{实验与结果}\`
-        *   若有表格，尝试用 \`\\begin{tabular}...\`
-    *   **结论 (Conclusion)**: \`\\section{结论与展望}\`
-    *   **参考文献 (References)** (挑选3-5个关键文献): \`\\section{主要参考文献}\`
-        *   \`\\begin{thebibliography}{99} \\bibitem[short]{key} ... \\end{thebibliography}\`
-
-5.  **幻灯片内容**：
-    *   每帧有 \`\\frametitle{...}\`。
-    *   内容要点化: \`\\begin{itemize} \\item ... \\end{itemize}\`。
-    *   避免单帧文字过多。确保 LaTeX 语法正确 (特殊字符如 %, &, $, #, _需转义 \`\\\`%)。
-
-6.  **输出要求**：
-    *   **只输出完整的 LaTeX Beamer 源码**，从 \`\\documentclass{beamer}\` 到 \`\\end{document}\`。
-    *   不要包含任何额外的解释或非 LaTeX 代码。
-
-**论文标题是：** ${articleTitle}
-
-**以下是论文的文本内容：**
----
-${truncatedPaperTextForLatex}
----
-
-请严格按照以上要求，生成高质量的 LaTeX Beamer 演示文稿源码。`;
-
-            const latexCode = await callGeminiApi(latexPrompt);
+            let latexCode = await callGeminiApi(latexPrompt);
 
             if (latexCode) {
+                latexCode = latexCode.replace(/^```latex\\s*|^```tex\\s*|^```\\s*/im, '');
+                latexCode = latexCode.replace(/\\s*```$/im, '');
+                latexCode = latexCode.trim();
+
+                if (!latexCode.startsWith('\\\\documentclass{beamer}')) {
+                    console.warn("Output from API does not start with \\documentclass. Attempting to find correct start.");
+                    const documentclassIndex = latexCode.indexOf('\\\\documentclass{beamer}');
+                    if (documentclassIndex !== -1) {
+                        latexCode = latexCode.substring(documentclassIndex);
+                    }
+                }
+
                 const texFileName = `${articleTitle.replace(/[^a-z0-9\\u4e00-\\u9fff _-]/gi, '').replace(/\\s+/g, '_').substring(0, 50) || 'presentation'}.tex`;
                 downloadLatex(latexCode, texFileName);
                 showSuccess('LaTeX演示文稿已生成并开始下载！');
@@ -417,7 +403,29 @@ ${truncatedPaperTextForLatex}
 
             const summaryEl = document.createElement('p');
             summaryEl.className = 'summary';
-            summaryEl.textContent = rec.summary;
+            const fullSummary = rec.summary;
+            const shortSummaryLength = 150; // Characters to show initially
+            if (fullSummary.length > shortSummaryLength) {
+                summaryEl.textContent = fullSummary.substring(0, shortSummaryLength) + "...";
+                const readMoreLink = document.createElement('a');
+                readMoreLink.href = '#';
+                readMoreLink.className = 'read-more-link';
+                readMoreLink.textContent = '阅读更多';
+                readMoreLink.onclick = (e) => {
+                    e.preventDefault();
+                    if (readMoreLink.textContent === '阅读更多') {
+                        summaryEl.textContent = fullSummary;
+                        readMoreLink.textContent = '收起';
+                    } else {
+                        summaryEl.textContent = fullSummary.substring(0, shortSummaryLength) + "...";
+                        readMoreLink.textContent = '阅读更多';
+                    }
+                };
+                summaryEl.appendChild(document.createElement('br')); // Add a line break before the link
+                summaryEl.appendChild(readMoreLink);
+            } else {
+                summaryEl.textContent = fullSummary;
+            }
 
             const pdfLinkEl = document.createElement('a');
             pdfLinkEl.href = rec.pdfUrl;

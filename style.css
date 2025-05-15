@@ -359,6 +359,19 @@ main {
     background-color: #218838;
 }
 
+.recommendation-card .summary .read-more-link {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.85em; /* Slightly smaller than summary text */
+    display: inline-block; /* Allows margin-top if needed, or just flows nicely */
+    margin-left: 5px; /* Space from summary text if on same line, or just visual separation */
+}
+
+.recommendation-card .summary .read-more-link:hover {
+    text-decoration: underline;
+}
+
 /* Secondary button style (used for PDF link in cards) */
 .button-secondary {
     /* Styles for secondary button can be defined here if different from other .button uses */
