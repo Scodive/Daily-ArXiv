@@ -11,12 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const outputContent = document.getElementById('output-content');
     const downloadTxtButton = document.getElementById('download-txt-button');
     const downloadPdfButton = document.getElementById('download-pdf-button');
+    const generateLatexButton = document.getElementById('generate-latex-button');
     const spinnerWrapper = document.querySelector('.spinner-wrapper'); // Get the spinner wrapper
 
     let originalPdfBlob = null;
     let originalPdfName = 'original_paper.pdf';
     let generatedArticleTitle = 'AI解读文章';
     let generatedArticleFullContent = ''; // Store full content with title and tags
+    let currentRawPdfText = ''; // To store raw PDF text for LaTeX generation
 
     processButton.addEventListener('click', async () => {
         const pdfUrl = arxivUrlInput.value.trim();
@@ -40,6 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showLoading('正在处理论文...');
         outputSection.style.display = 'none';
         processButton.disabled = true;
+        downloadTxtButton.disabled = true; // Disable buttons during processing
+        downloadPdfButton.disabled = true;
+        generateLatexButton.disabled = true;
 
         try {
             showLoading('步骤1/3: 下载并读取PDF内容...');
@@ -49,63 +54,186 @@ document.addEventListener('DOMContentLoaded', () => {
                 processButton.disabled = false;
                 return;
             }
+            currentRawPdfText = pdfText; // Store for LaTeX generation
             console.log("PDF text extracted, length:", pdfText.length);
 
             showLoading('步骤2/3: 调用Gemini API生成解读...');
-            const articleResult = await callGeminiApi(pdfText);
+            const truncatedPaperTextForArticle = currentRawPdfText.substring(0, 30000); // Truncate for API
+            const articlePrompt = `作为一位资深的科技内容创作者和分析师，你的任务是根据以下科研论文的文本，撰写一篇既专业准确又不失趣味性的科普解读文章，目标读者是对科技有一定兴趣的普通大众。文章字数在800-900中文字符左右。
+
+请遵循以下指导方针：
+
+1.  **文章标题**：在解读内容的第一行，使用 \`标题：\` 标记。标题应精炼、引人注目，并能准确反映论文的核心贡献或最有趣的发现。例如："AI新突破：机器视觉首次实现X功能"或"深度解析：Y理论如何颠覆我们对Z的认知"。
+2.  **开篇**：用简洁的几句话点明研究的背景、试图解决的关键问题及其潜在的重要性或新奇之处，以吸引读者继续阅读。
+3.  **核心内容解读**：
+    *   研究动机与背景
+    *   方法与技术亮点
+    *   主要发现与成果
+    *   意义与应用前景
+4.  **行文风格**：专业、严谨，同时生动可读。
+5.  **字数控制**：全文（不含标题和标签）控制在800-900中文字符左右。
+6.  **结尾标签**：在文章末尾，用 \`标签：\` 标记，另起一行提供3-5个与论文内容高度相关的中文关键词标签，用 # 分隔。
+
+输出格式约定：
+第一行：\`标题：[你创作的标题]\`
+第二行开始：文章正文。
+最后一行：\`标签：[ #标签1 #标签2 #标签3 ]\`
+
+以下是论文的文本内容：
+---
+${truncatedPaperTextForArticle}
+---
+
+请严格按照以上要求，创作出一篇高质量的科普解读文章。`;
+
+            const articleResult = await callGeminiApi(articlePrompt); // Pass constructed prompt
             if (!articleResult) {
                 showError('调用Gemini API失败或未返回有效内容。');
                 processButton.disabled = false;
                 return;
             }
-            generatedArticleFullContent = articleResult; // Store the full raw response
+            generatedArticleFullContent = articleResult;
 
-            // Parse title from API response
-            const lines = articleResult.split('\n');
+            const lines = articleResult.split('\\n');
             let bodyStartIndex = 0;
             if (lines[0] && lines[0].toLowerCase().startsWith('标题：')) {
                 generatedArticleTitle = lines[0].substring(3).trim();
                 bodyStartIndex = 1;
             } else {
-                generatedArticleTitle = "AI论文解读结果"; // Fallback title
+                generatedArticleTitle = "AI论文解读结果";
             }
-            // Join the rest as body (pre will handle formatting)
-            const articleBodyForDisplay = lines.slice(bodyStartIndex).join('\n');
+            const articleBodyForDisplay = lines.slice(bodyStartIndex).join('\\n');
 
             showLoading('步骤3/3: 准备显示结果...');
             outputTitle.textContent = generatedArticleTitle;
-            outputContent.textContent = articleBodyForDisplay; // Display content without the "标题：" prefix
+            outputContent.textContent = articleBodyForDisplay;
             outputSection.style.display = 'block';
             showSuccess('处理完成！');
 
-            // Enable download buttons
             downloadPdfButton.onclick = () => {
                 if (originalPdfBlob) {
                     downloadBlob(originalPdfBlob, originalPdfName);
                 } else {
-                    // Fallback: open the original URL if blob not available (should not happen with current flow)
                     window.open(pdfUrl, '_blank');
                 }
             };
             downloadTxtButton.disabled = false;
             downloadPdfButton.disabled = false;
+            generateLatexButton.disabled = false; // Enable LaTeX button
 
         } catch (error) {
             console.error('处理过程中发生错误:', error);
             showError(`处理失败: ${error.message || '未知错误'}`);
         } finally {
             processButton.disabled = false;
-            if (spinnerWrapper) spinnerWrapper.style.display = 'none'; // Ensure spinner is hidden on finish/error
+            if (spinnerWrapper) spinnerWrapper.style.display = 'none';
         }
     });
 
     downloadTxtButton.addEventListener('click', () => {
         if (generatedArticleFullContent) {
-            // Use the full content which includes title and tags as per prompt structure
-            const txtFileName = `${generatedArticleTitle.replace(/[^a-z0-9\u4e00-\u9fff _-]/gi, '').replace(/\s+/g, '_').substring(0, 50) || 'AI解读'}.txt`;
+            const txtFileName = `${generatedArticleTitle.replace(/[^a-z0-9\\u4e00-\\u9fff _-]/gi, '').replace(/\\s+/g, '_').substring(0, 50) || 'AI解读'}.txt`;
             downloadText(generatedArticleFullContent, txtFileName);
         }
     });
+
+    generateLatexButton.addEventListener('click', async () => {
+        if (!currentRawPdfText || !generatedArticleTitle) {
+            showError("请先成功解读一篇论文，再生成演示文稿。");
+            return;
+        }
+        await handleGenerateLatexClick(currentRawPdfText, generatedArticleTitle);
+    });
+
+    async function handleGenerateLatexClick(rawPdfText, articleTitle) {
+        showLoading('正在生成LaTeX演示文稿 (这可能需要一些时间)...');
+        generateLatexButton.disabled = true;
+
+        try {
+            const truncatedPaperTextForLatex = rawPdfText.substring(0, 28000); // Slightly less for prompt + content safety
+
+            const latexPrompt = `作为一位专业的学术报告幻灯片（使用 LaTeX Beamer）制作者，你的任务是根据以下科研论文的文本，并严格遵循提供的 Beamer 模板风格（如主题 CambridgeUS, 颜色主题 wolverine），生成一份详细介绍该论文的 LaTeX Beamer 源码。
+
+**严格遵循以下 LaTeX Beamer 结构和命令：**
+
+1.  **文档类与主题**：
+    *   \`\\documentclass{beamer}\`
+    *   \`\\usetheme{CambridgeUS}\`
+    *   \`\\usecolortheme{wolverine}\`
+    *   包含包: \`\\usepackage{graphicx}\`, \`\\usepackage{booktabs}\`, \`\\usepackage[UTF8,noindent]{ctexcap}\`, \`\\usepackage[bookmarks=true]{hyperref}\`.
+
+2.  **标题页信息** (从论文文本中提取或合理生成)：
+    *   \`\\title[${articleTitle.substring(0,30)}...]{${articleTitle}}\`
+    *   \`\\author{[从论文文本中提取的主要作者，若难提取则用 "研究团队"]}\`
+    *   \`\\institute[简称]{[提取的机构名，若难提取则用 "相关研究机构"]}\`
+    *   \`\\date{\\today}\`
+
+3.  **文档结构**：
+    *   \`\\begin{document}\` ... \`\\end{document}\`
+    *   第一帧: \`\\begin{frame}\\titlepage\\end{frame}\`
+    *   第二帧: \`\\begin{frame}\\frametitle{Overview}\\tableofcontents\\end{frame}\`
+
+4.  **内容组织 (\`\\section\` 和 \`\\subsection\` 会自动更新目录)：**
+    *   **引言 (Introduction)**: \`\\section{引言}\`
+        *   \`\\begin{frame}\\frametitle{研究背景/主要贡献}\` ... \`\\end{frame}\`
+    *   **相关工作 (Related Work)** (若有): \`\\section{相关工作}\`
+    *   **方法/模型 (Methodology/Model)**: \`\\section{方法与模型}\`
+        *   可使用 \`\\subsection{子标题}\`
+        *   使用 \`\\begin{block}{关键点}\` ... \`\\end{block}\`
+    *   **实验/结果 (Experiments/Results)**: \`\\section{实验与结果}\`
+        *   若有表格，尝试用 \`\\begin{tabular}...\`
+    *   **结论 (Conclusion)**: \`\\section{结论与展望}\`
+    *   **参考文献 (References)** (挑选3-5个关键文献): \`\\section{主要参考文献}\`
+        *   \`\\begin{thebibliography}{99} \\bibitem[short]{key} ... \\end{thebibliography}\`
+
+5.  **幻灯片内容**：
+    *   每帧有 \`\\frametitle{...}\`。
+    *   内容要点化: \`\\begin{itemize} \\item ... \\end{itemize}\`。
+    *   避免单帧文字过多。确保 LaTeX 语法正确 (特殊字符如 %, &, $, #, _需转义 \`\\\`%)。
+
+6.  **输出要求**：
+    *   **只输出完整的 LaTeX Beamer 源码**，从 \`\\documentclass{beamer}\` 到 \`\\end{document}\`。
+    *   不要包含任何额外的解释或非 LaTeX 代码。
+
+**论文标题是：** ${articleTitle}
+
+**以下是论文的文本内容：**
+---
+${truncatedPaperTextForLatex}
+---
+
+请严格按照以上要求，生成高质量的 LaTeX Beamer 演示文稿源码。`;
+
+            const latexCode = await callGeminiApi(latexPrompt);
+
+            if (latexCode) {
+                const texFileName = `${articleTitle.replace(/[^a-z0-9\\u4e00-\\u9fff _-]/gi, '').replace(/\\s+/g, '_').substring(0, 50) || 'presentation'}.tex`;
+                downloadLatex(latexCode, texFileName);
+                showSuccess('LaTeX演示文稿已生成并开始下载！');
+            } else {
+                showError('生成LaTeX演示文稿失败，未收到有效内容。');
+            }
+
+        } catch (error) {
+            console.error('生成LaTeX演示文稿过程中发生错误:', error);
+            showError(`生成LaTeX失败: ${error.message || '未知错误'}`);
+        } finally {
+            generateLatexButton.disabled = false;
+            if (spinnerWrapper) spinnerWrapper.style.display = 'none';
+        }
+    }
+    
+    function downloadLatex(text, filename) {
+        const blob = new Blob([text], { type: 'application/x-latex;charset=utf-8' }); // Or 'text/plain'
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
 
     async function fetchAndExtractPdfText(pdfUrl) {
         if (typeof pdfjsLib === 'undefined') {
@@ -150,51 +278,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function callGeminiApi(paperText) {
+    // Modified to accept full prompt text
+    async function callGeminiApi(fullPromptText) { 
         if (GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
             showError("请在script.js中配置您的Gemini API密钥!");
             throw new Error("API Key not configured");
         }
 
-        const truncatedPaperText = paperText.substring(0, 30000); // Truncate for API (Gemini has limits)
-        // Using the prompt from arxiv.py (professional but engaging, expecting full text)
-        const prompt = `作为一位资深的科技内容创作者和分析师，你的任务是根据以下科研论文的文本，撰写一篇既专业准确又不失趣味性的科普解读文章，目标读者是对科技有一定兴趣的普通大众。文章字数在800-900中文字符左右。
-
-请遵循以下指导方针：
-
-1.  **文章标题**：在解读内容的第一行，使用 \`标题：\` 标记。标题应精炼、引人注目，并能准确反映论文的核心贡献或最有趣的发现。例如："AI新突破：机器视觉首次实现X功能"或"深度解析：Y理论如何颠覆我们对Z的认知"。
-
-2.  **开篇**：用简洁的几句话点明研究的背景、试图解决的关键问题及其潜在的重要性或新奇之处，以吸引读者继续阅读。
-
-3.  **核心内容解读**：
-    *   **研究动机与背景**：清晰阐述这项研究为何被提出，它针对的是什么现状或挑战。
-    *   **方法与技术亮点**：用准确且易于理解的语言解释论文采用的关键方法和技术。如果涉及复杂概念，尝试用简明的方式解释其原理或作用，避免过度简化导致失真。可以保留必要的专业术语，并通过上下文使其易于理解。
-    *   **主要发现与成果**：客观、清晰地呈现论文的核心发现和结果。如果论文包含重要数据或性能指标，请准确转述，并解释其意义。
-    *   **意义与应用前景**：基于论文的发现，讨论其在学术界或实际应用中可能产生的具体影响、价值和未来发展方向。
-
-4.  **行文风格**：
-    *   **语言**：专业、严谨，同时保持文字的生动性和可读性。避免使用过于口语化、情绪化的表达（如过多感叹号、不必要的网络流行语）或不成熟的语气。
-    *   **叙述**：逻辑清晰，条理分明，重点突出。确保信息的准确传递。
-    *   **平衡性**：在专业深度和大众理解之间取得良好平衡。
-
-5.  **字数控制**：全文（不含标题和标签）控制在800-900中文字符左右。
-
-6.  **结尾标签**：在文章末尾，用 \`标签：\` 标记，另起一行提供3-5个与论文内容高度相关的中文关键词标签，用 # 分隔。例如：#人工智能 #计算机视觉 #科研进展
-
-输出格式约定：
-第一行：\`标题：[你创作的标题]\`
-第二行开始：文章正文。
-最后一行：\`标签：[ #标签1 #标签2 #标签3 ]\`
-
-以下是论文的文本内容：
----\n${truncatedPaperText}\n---\n
-
-请严格按照以上要求，创作出一篇高质量的科普解读文章。`;
+        // The fullPromptText now includes the paper text, so no need to append truncatedPaperText here.
+        // The truncation should happen *before* constructing the fullPromptText if needed.
 
         const payload = {
-            contents: [{ parts: [{ text: prompt }] }],
+            contents: [{ parts: [{ text: fullPromptText }] }], // Use the passed fullPromptText
             generationConfig: {
-                temperature: 0.6, // Adjusted from arxiv.py, can be fine-tuned
+                temperature: 0.6,
                 topP: 0.8,
                 topK: 40,
                 maxOutputTokens: 8192 
