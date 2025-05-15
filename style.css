@@ -277,4 +277,91 @@ main {
         flex-direction: column;
         gap: 0.7rem;
     }
+}
+
+/* Recommendations Section */
+#recommendations {
+    border-top: 1px solid #e9ecef;
+    padding-top: 1.5rem;
+    margin-top: 2.5rem;
+}
+
+#recommendations h2 {
+    text-align: center;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: #343a40;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive grid */
+    gap: 1.5rem;
+}
+
+.recommendation-card {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.25rem;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.recommendation-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    transform: translateY(-3px);
+}
+
+.recommendation-card h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: #0056b3; /* Link-like color for title */
+}
+
+.recommendation-card h3 a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.recommendation-card h3 a:hover {
+    text-decoration: underline;
+}
+
+.recommendation-card .authors {
+    font-size: 0.85rem;
+    color: #6c757d; /* Muted color for authors */
+    margin-bottom: 0.75rem;
+}
+
+.recommendation-card .summary {
+    font-size: 0.9rem;
+    color: #495057;
+    margin-bottom: 1rem;
+    flex-grow: 1; /* Makes summary take available space */
+}
+
+.recommendation-card .view-pdf-button {
+    margin-top: auto; /* Pushes button to the bottom */
+    background-color: #28a745; /* Green for view/download PDF */
+    color: white;
+    align-self: flex-start; /* Align button to the start of the flex item (card) */
+    padding: 0.6rem 1rem;
+}
+
+.recommendation-card .view-pdf-button:hover {
+    background-color: #218838;
+}
+
+/* Secondary button style (used for PDF link in cards) */
+.button-secondary {
+    /* Styles for secondary button can be defined here if different from other .button uses */
+    /* Example: might have a different background or border if needed */
+    /* For now, it will inherit from .button and have specific overrides where needed, like above */
 } 

@@ -265,4 +265,79 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }
+
+    // Function to load and display recommendations
+    function loadRecommendations() {
+        const recommendationsContainer = document.getElementById('recommendation-cards');
+        if (!recommendationsContainer) return;
+
+        // Simulated recommendation data (replace with actual data source later)
+        const recommendations = [
+            {
+                title: "大型语言模型作为优化器",
+                authors: "Chengrun Yang, Xuezhi Wang, Yifeng Lu, ...",
+                summary: "本文探讨了使用大型语言模型 (LLM) 作为优化器来改进提示和模型参数的可能性。研究表明，LLM 可以通过自然语言指令生成新的优化步骤，从而在各种任务中取得有竞争力的结果。",
+                url: "https://arxiv.org/abs/2309.03409",
+                pdfUrl: "https://arxiv.org/pdf/2309.03409.pdf"
+            },
+            {
+                title: "通过文本到图像扩散模型生成3D神经辐射场",
+                authors: "Jing-Chun Chen, Sida Peng, Dídac Surís, ...",
+                summary: "研究者提出了一种新方法，可以利用预训练的文本到图像扩散模型直接从文本提示生成高质量的3D神经辐射场 (NeRF)。这种方法无需3D数据训练，为可控的3D内容生成开辟了新途径。",
+                url: "https://arxiv.org/abs/2305.11280",
+                pdfUrl: "https://arxiv.org/pdf/2305.11280.pdf"
+            },
+            {
+                title: "视觉语言模型中的涌现能力",
+                authors: "Yihan Duan, Rishabh Agarwal, Pranav K S",
+                summary: "本文分析了在大型视觉语言模型 (VLM) 中观察到的涌现能力，例如上下文学习和复杂推理。作者讨论了这些能力是如何随着模型规模和数据量的增加而出现的，并探讨了其潜在影响。",
+                url: "https://arxiv.org/abs/2306.03409", // Placeholder, update with a real link if available
+                pdfUrl: "https://arxiv.org/pdf/2306.03409.pdf" // Placeholder
+            }
+        ];
+
+        if (recommendations.length === 0) {
+            recommendationsContainer.innerHTML = '<p>暂无推荐内容。</p>';
+            return;
+        }
+
+        recommendationsContainer.innerHTML = ''; // Clear any existing content (like loading message)
+
+        recommendations.forEach(rec => {
+            const card = document.createElement('div');
+            card.className = 'recommendation-card';
+
+            const titleEl = document.createElement('h3');
+            const titleLink = document.createElement('a');
+            titleLink.href = rec.url; // Link to the ArXiv abstract page
+            titleLink.textContent = rec.title;
+            titleLink.target = '_blank'; // Open in new tab
+            titleEl.appendChild(titleLink);
+
+            const authorsEl = document.createElement('p');
+            authorsEl.className = 'authors';
+            authorsEl.textContent = `作者: ${rec.authors}`;
+
+            const summaryEl = document.createElement('p');
+            summaryEl.className = 'summary';
+            summaryEl.textContent = rec.summary;
+
+            const pdfLinkEl = document.createElement('a');
+            pdfLinkEl.href = rec.pdfUrl;
+            pdfLinkEl.textContent = '查看/下载PDF';
+            pdfLinkEl.className = 'button button-secondary view-pdf-button'; // Added classes for styling
+            pdfLinkEl.target = '_blank';
+
+            // Append elements to card
+            card.appendChild(titleEl);
+            card.appendChild(authorsEl);
+            card.appendChild(summaryEl);
+            card.appendChild(pdfLinkEl);
+
+            recommendationsContainer.appendChild(card);
+        });
+    }
+
+    // Call loadRecommendations on DOMContentLoaded
+    loadRecommendations();
 }); 
