@@ -221,12 +221,13 @@ main {
 }
 
 #output-content {
-    overflow-wrap: break-word; /* Keep for long words in HTML */
-    word-wrap: break-word; /* Alias */
-    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Standard body font */
-    font-size: 0.95rem; /* Adjusted for readability */
-    line-height: 1.7; /* Consistent with body line-height */
-    color: #212529; /* Standard text color */
+    white-space: pre-wrap; /* Restored for <pre> tag behavior */
+    overflow-wrap: break-word;
+    word-wrap: break-word; 
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; /* Restored monospaced font */
+    font-size: 0.875rem; /* Typical pre font size */
+    line-height: 1.65; /* Typical pre line-height */
+    color: #212529;
 }
 
 #download-buttons {
