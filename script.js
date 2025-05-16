@@ -106,7 +106,7 @@ ${truncatedPaperTextForArticle}
 
             showLoading('步骤3/3: 准备显示结果...');
             outputTitle.textContent = generatedArticleTitle;
-            outputContent.textContent = articleBodyForDisplay;
+            outputContent.innerHTML = einfacheMarkdownToHtml(articleBodyForDisplay);
             outputSection.style.display = 'block';
             showSuccess('处理完成！');
 
@@ -347,6 +347,28 @@ ${truncatedPaperTextForArticle}
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    }
+
+    // Basic Markdown to HTML converter
+    function einfacheMarkdownToHtml(mdText) {
+        if (typeof mdText !== 'string') return '';
+
+        let html = mdText;
+        // Bold: **text** to <strong>text</strong>
+        html = html.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
+        // Italic: *text* to <em>text</em> (optional, can be added if needed)
+        // html = html.replace(/\*([^\*]+)\*/g, '<em>$1</em>'); 
+        
+        // Handle paragraphs and newlines: replace \n with <br>
+        // More robust paragraph handling would split by \n\n and wrap in <p>, 
+        // but for simple pre-like display, <br> is often what users expect from previous pre behavior.
+        html = html.replace(/\n/g, '<br>\n'); 
+
+        // Simple handling for #tags - wrap them or style them if needed.
+        // For now, just ensuring they are displayed. If specific styling is needed, it can be added.
+        // e.g., html = html.replace(/(#[a-zA-Z0-9_]+)/g, '<span class="tag">$1</span>');
+
+        return html;
     }
 
     // Function to load and display recommendations
