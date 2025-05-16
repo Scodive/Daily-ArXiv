@@ -94,15 +94,41 @@ ${truncatedPaperTextForArticle}
             }
             generatedArticleFullContent = articleResult;
 
-            const lines = articleResult.split('\\n');
+            const lines = articleResult.split('\n');
             let bodyStartIndex = 0;
+            let titleLine = '';
             if (lines[0] && lines[0].toLowerCase().startsWith('标题：')) {
-                generatedArticleTitle = lines[0].substring(3).trim();
-                bodyStartIndex = 1;
+                titleLine = lines[0];
+                generatedArticleTitle = titleLine.substring(3).trim();
+                bodyStartIndex = 1; // المقبل
             } else {
                 generatedArticleTitle = "AI论文解读结果";
             }
-            const articleBodyForDisplay = lines.slice(bodyStartIndex).join('\\n');
+
+            let articleBodyForDisplay;
+            if (bodyStartIndex > 0) {
+                // If there was a title line, get content after it
+                articleBodyForDisplay = articleResult.substring(titleLine.length).trim();
+            } else {
+                // If no title line detected, use the whole result as body
+                articleBodyForDisplay = articleResult.trim();
+            }
+
+            // Normalize newlines: replace any CR LF (Windows) or CR (old Mac) with LF
+            articleBodyForDisplay = articleBodyForDisplay.replace(/\r\n|\r/g, '\n');
+
+            // Ensure distinct paragraphs: Replace 3+ newlines with 2, and 2 newlines remain 2.
+            // This helps <pre> show a blank line between paragraphs if the source had them.
+            articleBodyForDisplay = articleBodyForDisplay.replace(/\n{3,}/g, '\n\n');
+
+            // Attempt to add paragraph breaks around **headings** if they aren't already well-separated.
+            // This looks for non-whitespace, optional space, then **heading**, ensuring a newline before.
+            articleBodyForDisplay = articleBodyForDisplay.replace(/([^\n])\s*(\*\*[^\*]+\*\*)/g, '$1\n\n$2');
+            // This looks for **heading**, optional space, then non-whitespace, ensuring newlines after.
+            articleBodyForDisplay = articleBodyForDisplay.replace(/(\*\*[^\*]+\*\*)\s*([^\n])/g, '$1\n\n$2');
+            
+            // Trim leading/trailing newlines that might have been added excessively
+            articleBodyForDisplay = articleBodyForDisplay.trim();
 
             showLoading('步骤3/3: 准备显示结果...');
             outputTitle.textContent = generatedArticleTitle;
