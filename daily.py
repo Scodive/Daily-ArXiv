@@ -13,7 +13,7 @@ import random
 # 请注意：直接在代码中嵌入API密钥存在安全风险。
 # 建议使用环境变量或其他安全方式管理您的API密钥。
 API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw'  # 请替换为您的API Key
-MODEL_NAME = 'gemini-2.0-flash-exp' # 假设使用 1.0 pro，如果需要flash请修改
+MODEL_NAME = 'gemini-2.5-flash-preview-05-20' # 假设使用 1.0 pro，如果需要flash请修改
 GEMINI_API_URL = f'https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}'
 
 ARXIV_RECENT_CV_URL = 'https://arxiv.org/list/cs.CV/recent'
