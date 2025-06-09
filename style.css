@@ -375,4 +375,353 @@ main {
     /* Styles for secondary button can be defined here if different from other .button uses */
     /* Example: might have a different background or border if needed */
     /* For now, it will inherit from .button and have specific overrides where needed, like above */
+}
+
+/* Database Articles Styles */
+.search-section {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.search-container {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+#article-search {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#article-search:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    outline: none;
+}
+
+.article-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.article-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: #007bff;
+    transform: translateY(-2px);
+}
+
+.article-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.article-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+    line-height: 1.4;
+    flex: 1;
+}
+
+.article-date {
+    font-size: 0.85rem;
+    color: #6c757d;
+    white-space: nowrap;
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+}
+
+.article-preview {
+    color: #495057;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    max-height: 3.6rem;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.article-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.article-tags {
+    color: #007bff;
+    font-size: 0.8rem;
+    flex: 1;
+}
+
+.article-links {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.arxiv-id {
+    font-size: 0.8rem;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+
+.pdf-link {
+    color: #dc3545;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.pdf-link:hover {
+    color: #c82333;
+    text-decoration: underline;
+}
+
+.loading-articles {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6c757d;
+}
+
+.loading-articles .spinner {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 1rem;
+}
+
+.error-message {
+    text-align: center;
+    padding: 2rem;
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.no-articles {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.search-actions {
+    text-align: center;
+    margin: 1.5rem 0;
+}
+
+/* Modal Styles */
+.modal {
+    display: block;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 2% auto;
+    padding: 0;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow: hidden;
+    position: relative;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-close {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #6c757d;
+    cursor: pointer;
+    z-index: 1001;
+    background: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.modal-close:hover {
+    color: #495057;
+    background-color: #f8f9fa;
+}
+
+.modal-body {
+    padding: 2rem;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-body.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.article-detail-header {
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.article-detail-header h2 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 1.4rem;
+    line-height: 1.3;
+}
+
+.article-meta {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.article-meta span {
+    font-size: 0.9rem;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+}
+
+.article-detail .article-tags {
+    color: #007bff;
+    font-size: 0.85rem;
+}
+
+.article-content {
+    line-height: 1.7;
+    margin-bottom: 2rem;
+}
+
+.article-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #495057;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.article-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.article-actions .button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.article-actions .button:hover {
+    background-color: #0056b3;
+}
+
+/* Responsive Design for Articles */
+@media (max-width: 768px) {
+    .search-container {
+        flex-direction: column;
+    }
+    
+    .article-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .article-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
+    }
+    
+    .modal-content {
+        margin: 1% auto;
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .article-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .article-actions {
+        flex-direction: column;
+    }
 } 
