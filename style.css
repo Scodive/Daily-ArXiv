@@ -69,6 +69,13 @@ body {
     overflow-x: hidden;
 }
 
+/* 防止模态框滚动穿透 */
+body.modal-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -969,6 +976,29 @@ html {
     padding: var(--space-lg);
     max-height: 80vh;
     overflow-y: auto;
+    /* 确保滚动条样式美观 */
+    scrollbar-width: thin;
+    scrollbar-color: var(--gray-400) var(--gray-200);
+}
+
+/* Webkit浏览器滚动条样式 */
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: var(--radius-md);
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--gray-400);
+    border-radius: var(--radius-md);
+    transition: background-color 0.3s ease;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500);
 }
 
 .modal-body.loading {

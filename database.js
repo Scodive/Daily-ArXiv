@@ -183,6 +183,9 @@ function showModal(content, isLoading = false) {
         existingModal.remove();
     }
     
+    // 禁止背景滚动
+    document.body.classList.add('modal-open');
+    
     // 创建新模态框
     const modal = document.createElement('div');
     modal.id = 'article-modal';
@@ -206,13 +209,49 @@ function showModal(content, isLoading = false) {
             closeModal();
         }
     });
+    
+    // 添加ESC键关闭功能
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+    
+    // 防止移动设备滚动穿透
+    const handleTouchMove = (e) => {
+        // 如果事件目标不在模态框内容区域内，阻止默认行为
+        const modalBody = modal.querySelector('.modal-body');
+        if (!modalBody.contains(e.target)) {
+            e.preventDefault();
+        }
+    };
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    
+    // 将事件处理器存储到模态框元素上，以便清理
+    modal._escapeHandler = handleEscape;
+    modal._touchMoveHandler = handleTouchMove;
 }
 
 // 关闭模态框
 function closeModal() {
     const modal = document.getElementById('article-modal');
     if (modal) {
+        // 清理ESC键事件监听器
+        if (modal._escapeHandler) {
+            document.removeEventListener('keydown', modal._escapeHandler);
+        }
+        
+        // 清理触摸事件监听器
+        if (modal._touchMoveHandler) {
+            document.removeEventListener('touchmove', modal._touchMoveHandler);
+        }
+        
+        // 移除模态框
         modal.remove();
+        
+        // 恢复背景滚动
+        document.body.classList.remove('modal-open');
     }
 }
 
@@ -460,6 +499,9 @@ function loadMoreArticles() {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
+    // 清理可能残留的模态框状态
+    document.body.classList.remove('modal-open');
+    
     initSearchFeature();
     initArticleDisplay();
 }); 
