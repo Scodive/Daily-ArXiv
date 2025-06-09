@@ -1,3 +1,11 @@
+
+# Daily-ArXiv
+
+网站：https://daily-ar-xiv.vercel.app
+
+一个用于自动获取、解读最新ArXiv计算机视觉论文，并生成科普文章及相关图片的Python项目。每日更新最新的AI领域论文。
+
+
 ## Latest arXiv Papers
 
 - 2025-06-09 [AdaCM2：自适应跨模态记忆缩减，解锁超长视频理解新姿势](generated_articles/2025-06-09_AdaCM2：自适应跨模态记忆缩减，解锁超长视频理解新姿势.txt)
@@ -91,12 +99,6 @@
 - 2025-05-08 [视觉图提示：用语义低秩分解提升AI图像识别能力](generated_articles/2025-05-08_视觉图提示：用语义低秩分解提升AI图像识别能力.txt)
 - 2025-05-08 [AI界“华山论剑”！多模态大模型迎来首次能力分级，谁能问鼎AI之巅？](generated_articles/2025-05-08_AI界“华山论剑”！多模态大模型迎来首次能力分级，谁能问鼎AI之巅？.txt)
 - 2025-05-08 [多模态通用智能新阶梯：General-Level与General-Bench](generated_articles/2025-05-08_多模态通用智能新阶梯：General-Level与General-Bench.txt)
-
-# Daily-ArXiv
-
-网站：https://daily-ar-xiv.vercel.app
-
-一个用于自动获取、解读最新ArXiv计算机视觉论文，并生成科普文章及相关图片的Python项目。
 
 ## 主要功能
 

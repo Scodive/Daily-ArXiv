@@ -1,3 +1,14 @@
+"""
+ArXiv论文科普文章生成器
+功能：下载ArXiv论文PDF，提取文本，调用Gemini API生成科普文章，保存到本地并上传到数据库
+
+使用前请确保已安装依赖：
+pip install -r requirements.txt
+
+或手动安装：
+pip install requests PyPDF2 psycopg2-binary
+"""
+
 import requests
 import PyPDF2
 import io
@@ -5,6 +16,7 @@ import json
 import os
 from datetime import datetime
 import re
+import psycopg2
 
 # --- 配置区 ---
 # 请注意：直接在代码中嵌入API密钥存在安全风险。
@@ -59,9 +71,9 @@ def generate_xiaohongshu_post(paper_text):
 
 请遵循以下指导方针：
 
-1.  **文章标题**：在解读内容的第一行，使用 `标题：` 标记。标题应精炼、引人注目，并能准确反映论文的核心贡献或最有趣的发现。例如："AI新突破：机器视觉首次实现X功能"或"深度解析：Y理论如何颠覆我们对Z的认知"。
+1.  **文章标题**：在解读内容的第一行，使用 `标题：` 标记。标题应精炼、引人注目，并能准确反映论文的核心贡献或最有趣的发现，如果作者或者机构特别出名比如英伟达、清华、CMU等也可以写入。例如："AI新突破：机器视觉首次实现X功能"或"深度解析：Y理论如何颠覆我们对Z的认知"。
 
-2.  **开篇**：用简洁的几句话点明研究的背景、试图解决的关键问题及其潜在的重要性或新奇之处，以吸引读者继续阅读。
+2.  **开篇**：首先介绍论文的完整标题，然后用简洁的几句话点明研究的背景、试图解决的关键问题及其潜在的重要性或新奇之处，以吸引读者继续阅读。
 
 3.  **核心内容解读**：
     *   **研究动机与背景**：清晰阐述这项研究为何被提出，它针对的是什么现状或挑战。
@@ -146,6 +158,88 @@ def sanitize_filename(filename):
     filename = re.sub(r"\s+", "_", filename.strip()) # 空格替换为下划线
     return filename[:100] # 限制文件名长度
 
+# 数据库连接函数
+def connect_to_database():
+    """连接到PostgreSQL数据库"""
+    try:
+        conn = psycopg2.connect(
+            host="dbprovider.ap-southeast-1.clawcloudrun.com",
+            port=49674,
+            database="postgres",
+            user="postgres",
+            password="sbdx497p",
+            sslmode="prefer"
+        )
+        return conn
+    except Exception as e:
+        print(f"数据库连接失败: {e}")
+        return None
+
+def extract_arxiv_id_from_url(pdf_url):
+    """从ArXiv PDF URL中提取论文ID"""
+    try:
+        # ArXiv URL格式：https://arxiv.org/pdf/2310.06825.pdf
+        match = re.search(r'arxiv\.org/pdf/([^\.]+)', pdf_url)
+        if match:
+            return match.group(1)
+        return None
+    except:
+        return None
+
+def insert_article_to_database(title, content, tags, arxiv_id, pdf_url, filename, date_processed):
+    """将文章插入到数据库"""
+    try:
+        conn = connect_to_database()
+        if not conn:
+            print("❌ 数据库连接失败，无法保存到数据库")
+            return False
+        
+        cursor = conn.cursor()
+        
+        # 检查是否已存在相同的文章（基于arxiv_id或标题）
+        if arxiv_id:
+            cursor.execute("SELECT id FROM articles WHERE arxiv_id = %s", (arxiv_id,))
+        else:
+            cursor.execute("SELECT id FROM articles WHERE title = %s", (title,))
+        
+        existing = cursor.fetchone()
+        if existing:
+            print(f"⚠️  论文已存在于数据库中 (ID: {existing[0]})，跳过插入")
+            cursor.close()
+            conn.close()
+            return True
+        
+        # 插入新文章
+        insert_sql = """
+        INSERT INTO articles (title, arxiv_id, pdf_url, filename, date_processed, 
+                            tags, content, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        RETURNING id;
+        """
+        
+        cursor.execute(insert_sql, (
+            title,
+            arxiv_id,
+            pdf_url,
+            filename,
+            date_processed,
+            tags,
+            content
+        ))
+        
+        new_id = cursor.fetchone()[0]
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        print(f"✅ 文章已成功保存到数据库 (ID: {new_id})")
+        return True
+        
+    except Exception as e:
+        print(f"❌ 保存到数据库失败: {e}")
+        return False
+
 # --- 主程序 ---
 if __name__ == "__main__":
     # 请将下面的URL替换为您想解读的ArXiv论文PDF链接
@@ -224,11 +318,39 @@ if __name__ == "__main__":
                             # 写入提取的标题（如果希望标题也在文件顶部）
                             f.write(f"标题：{article_title}\n\n")
                             f.write(final_article_text) # 写入正文和标签
-                        print(f"文章已成功保存到：{file_path}")
+                        print(f"📄 文章已成功保存到：{file_path}")
+                        
+                        # 保存到数据库
+                        print("\n🗄️  正在保存到数据库...")
+                        
+                        # 提取ArXiv ID
+                        arxiv_id = extract_arxiv_id_from_url(arxiv_pdf_url)
+                        
+                        # 准备数据库数据
+                        content_for_db = final_article_text
+                        tags_for_db = tags_line.replace("标签：", "").strip() if tags_line else ""
+                        date_processed = datetime.now().date()
+                        
+                        # 插入数据库
+                        db_success = insert_article_to_database(
+                            title=article_title,
+                            content=content_for_db,
+                            tags=tags_for_db,
+                            arxiv_id=arxiv_id,
+                            pdf_url=arxiv_pdf_url,
+                            filename=txt_filename,
+                            date_processed=date_processed
+                        )
+                        
+                        if db_success:
+                            print("🎉 论文处理完成！文件已保存到本地并上传到数据库")
+                        else:
+                            print("⚠️  文件已保存到本地，但数据库保存失败")
+                            
                     except Exception as e:
-                        print(f"保存文件失败: {e}")
+                        print(f"❌ 保存文件失败: {e}")
                 else:
-                    print("未能生成科普文章内容。")
+                    print("❌ 未能生成科普文章内容。")
             else:
                 print("未能从PDF中提取文本，无法继续。")
         else:
