@@ -17,9 +17,15 @@ function formatDate(dateString) {
 // 格式化标签
 function formatTags(tagsString) {
     if (!tagsString) return '';
-    return tagsString.split(' ').map(tag => 
-        tag.trim().startsWith('#') ? tag.trim() : '#' + tag.trim()
-    ).join(' ');
+    
+    // 清理标签字符串
+    const cleanTags = tagsString.replace(/^标签：\s*/, '').trim();
+    if (!cleanTags) return '';
+    
+    // 按#分割并清理，生成HTML标签
+    return cleanTags.split('#').filter(tag => tag.trim()).map(tag => 
+        `<span class="paper-tag">#${tag.trim()}</span>`
+    ).join('');
 }
 
 // 获取最近的论文
@@ -77,20 +83,38 @@ async function searchArticles(keyword) {
 function createArticleCard(article) {
     const tags = formatTags(article.tags);
     
+    // 创建内容预览（前150字符）
+    const contentPreview = article.content ? 
+        article.content.substring(0, 150).replace(/标题：.*?\n\n?/, '') + '...' : 
+        '暂无预览内容';
+    
     return `
-        <div class="article-card" onclick="showArticleDetail(${article.id})">
-            <div class="article-header">
-                <h3 class="article-title">${article.title}</h3>
-                <span class="article-date">${formatDate(article.date_processed)}</span>
+        <div class="paper-card" onclick="showArticleDetail(${article.id})">
+            <div class="paper-card-header">
+                <h3 class="paper-title">${article.title}</h3>
+                <div class="paper-meta">
+                    <span class="date"><i class="fas fa-calendar"></i> ${formatDate(article.date_processed)}</span>
+                    ${article.arxiv_id ? `<span class="arxiv"><i class="fas fa-link"></i> ${article.arxiv_id}</span>` : ''}
+                </div>
+                <div class="paper-tags">
+                    ${tags}
+                </div>
             </div>
-            <div class="article-preview">
-                ${article.content_preview || '暂无预览内容'}
-            </div>
-            <div class="article-footer">
-                <div class="article-tags">${tags}</div>
-                <div class="article-links">
-                    ${article.arxiv_id ? `<span class="arxiv-id">ArXiv: ${article.arxiv_id}</span>` : ''}
-                    ${article.pdf_url ? `<a href="${article.pdf_url}" target="_blank" onclick="event.stopPropagation()" class="pdf-link">📄 PDF</a>` : ''}
+            <div class="paper-content">
+                <div class="paper-preview">
+                    ${contentPreview}
+                </div>
+                <div class="paper-actions">
+                    <button class="paper-btn primary" onclick="event.stopPropagation(); showArticleDetail(${article.id})">
+                        <i class="fas fa-eye"></i>
+                        <span>查看解读</span>
+                    </button>
+                    ${article.pdf_url ? `
+                        <a href="${article.pdf_url}" target="_blank" onclick="event.stopPropagation()" class="paper-btn">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>原文PDF</span>
+                        </a>
+                    ` : ''}
                 </div>
             </div>
         </div>
@@ -215,116 +239,223 @@ async function downloadArticleText(articleId, title) {
 
 // 初始化论文展示
 function initArticleDisplay() {
-    const container = document.getElementById('recommendation-cards');
+    // 获取今日论文容器
+    const dailyContainer = document.getElementById('daily-papers-grid');
+    // 获取历史论文容器
+    const archiveContainer = document.getElementById('archive-papers-grid');
     
-    if (!container) {
+    if (!dailyContainer && !archiveContainer) {
         console.error('未找到论文展示容器');
         return;
     }
     
-    // 显示加载状态
-    container.innerHTML = '<div class="loading-articles"><div class="spinner"></div><p>正在加载最近的论文...</p></div>';
-    
-    // 获取并显示最近的论文
-    fetchRecentArticles(7)
-        .then(articles => {
-            displayArticles(articles, container);
-        })
-        .catch(error => {
-            container.innerHTML = `
-                <div class="error-message">
-                    <p>加载论文失败: ${error.message}</p>
-                    <button onclick="initArticleDisplay()" class="button">重试</button>
-                </div>
-            `;
-        });
-}
-
-// 添加搜索功能
-function initSearchFeature() {
-    // 创建搜索界面
-    const searchHTML = `
-        <div class="search-section">
-            <div class="search-container">
-                <input type="text" id="article-search" placeholder="搜索论文标题、内容或标签..." />
-                <button onclick="performSearch()" class="button">搜索</button>
-            </div>
-        </div>
-    `;
-    
-    // 在推荐部分之前插入搜索
-    const recommendationSection = document.getElementById('recommendations');
-    if (recommendationSection) {
-        recommendationSection.insertAdjacentHTML('beforebegin', searchHTML);
+    // 显示今日论文（最近1天）
+    if (dailyContainer) {
+        dailyContainer.innerHTML = '<div class="loading-articles"><div class="spinner"></div><p>正在加载今日论文...</p></div>';
         
-        // 添加回车搜索功能
-        const searchInput = document.getElementById('article-search');
-        if (searchInput) {
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    performSearch();
+        fetchRecentArticles(1)
+            .then(articles => {
+                if (articles.length > 0) {
+                    displayArticles(articles, dailyContainer, 'daily');
+                } else {
+                    dailyContainer.innerHTML = '<div class="no-articles">今日暂无新论文</div>';
                 }
+            })
+            .catch(error => {
+                dailyContainer.innerHTML = `
+                    <div class="error-message">
+                        <p>加载今日论文失败: ${error.message}</p>
+                        <button onclick="initArticleDisplay()" class="button">重试</button>
+                    </div>
+                `;
             });
-        }
+    }
+    
+    // 显示历史论文（最近30天，排除今天）
+    if (archiveContainer) {
+        archiveContainer.innerHTML = '<div class="loading-articles"><div class="spinner"></div><p>正在加载历史论文...</p></div>';
+        
+        fetchRecentArticles(30)
+            .then(articles => {
+                // 过滤掉今日的论文，只显示历史论文
+                const today = new Date().toDateString();
+                const historicalArticles = articles.filter(article => {
+                    const articleDate = new Date(article.date_processed).toDateString();
+                    return articleDate !== today;
+                });
+                
+                if (historicalArticles.length > 0) {
+                    displayArticles(historicalArticles.slice(0, 6), archiveContainer, 'archive');
+                } else {
+                    archiveContainer.innerHTML = '<div class="no-articles">暂无历史论文</div>';
+                }
+            })
+            .catch(error => {
+                archiveContainer.innerHTML = `
+                    <div class="error-message">
+                        <p>加载历史论文失败: ${error.message}</p>
+                        <button onclick="initArticleDisplay()" class="button">重试</button>
+                    </div>
+                `;
+            });
     }
 }
 
-// 执行搜索
-function performSearch() {
-    const searchInput = document.getElementById('article-search');
-    const keyword = searchInput.value.trim();
+// 初始化搜索功能
+function initSearchFeature() {
+    // 绑定档案区搜索
+    const archiveSearchInput = document.getElementById('archive-search');
+    const dateFilter = document.getElementById('date-filter');
     
-    if (!keyword) {
-        alert('请输入搜索关键词');
-        return;
+    if (archiveSearchInput) {
+        archiveSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performArchiveSearch();
+            }
+        });
     }
     
-    const container = document.getElementById('recommendation-cards');
+    if (dateFilter) {
+        dateFilter.addEventListener('change', performArchiveSearch);
+    }
+}
+
+// 执行档案区搜索
+function performArchiveSearch() {
+    const searchInput = document.getElementById('archive-search');
+    const dateFilter = document.getElementById('date-filter');
+    const keyword = searchInput ? searchInput.value.trim() : '';
+    const timeFilter = dateFilter ? dateFilter.value : 'all';
+    
+    const container = document.getElementById('archive-papers-grid');
+    if (!container) return;
+    
     container.innerHTML = '<div class="loading-articles"><div class="spinner"></div><p>正在搜索...</p></div>';
     
-    searchArticles(keyword)
+    // 根据时间过滤确定搜索天数
+    let searchDays = 365; // 默认一年
+    switch(timeFilter) {
+        case 'week': searchDays = 7; break;
+        case 'month': searchDays = 30; break;
+        case 'quarter': searchDays = 90; break;
+    }
+    
+    if (keyword) {
+        // 如果有关键词，进行搜索
+        searchArticles(keyword)
+            .then(articles => {
+                // 按时间过滤
+                const filteredArticles = filterArticlesByTime(articles, searchDays);
+                displayArticles(filteredArticles, container);
+            })
+            .catch(error => {
+                container.innerHTML = `
+                    <div class="error-message">
+                        <p>搜索失败: ${error.message}</p>
+                        <button onclick="loadArchiveArticles()" class="button">重新加载</button>
+                    </div>
+                `;
+            });
+    } else {
+        // 如果没有关键词，只按时间过滤
+        fetchRecentArticles(searchDays)
+            .then(articles => {
+                // 过滤掉今日的论文
+                const today = new Date().toDateString();
+                const historicalArticles = articles.filter(article => {
+                    const articleDate = new Date(article.date_processed).toDateString();
+                    return articleDate !== today;
+                });
+                
+                displayArticles(historicalArticles, container);
+            })
+            .catch(error => {
+                container.innerHTML = `
+                    <div class="error-message">
+                        <p>加载失败: ${error.message}</p>
+                        <button onclick="loadArchiveArticles()" class="button">重新加载</button>
+                    </div>
+                `;
+            });
+    }
+}
+
+// 按时间过滤文章
+function filterArticlesByTime(articles, days) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    return articles.filter(article => {
+        const articleDate = new Date(article.date_processed);
+        return articleDate >= cutoffDate;
+    });
+}
+
+// 加载档案文章
+function loadArchiveArticles() {
+    const archiveContainer = document.getElementById('archive-papers-grid');
+    if (!archiveContainer) return;
+    
+    archiveContainer.innerHTML = '<div class="loading-articles"><div class="spinner"></div><p>正在加载历史论文...</p></div>';
+    
+    fetchRecentArticles(30)
         .then(articles => {
-            // 更新标题
-            const recommendationTitle = document.querySelector('#recommendations h2');
-            if (recommendationTitle) {
-                recommendationTitle.textContent = `搜索结果: "${keyword}" (${articles.length}篇)`;
-            }
+            const today = new Date().toDateString();
+            const historicalArticles = articles.filter(article => {
+                const articleDate = new Date(article.date_processed).toDateString();
+                return articleDate !== today;
+            });
             
-            displayArticles(articles, container);
-            
-            // 添加返回按钮
-            if (articles.length > 0) {
-                container.insertAdjacentHTML('afterend', 
-                    '<div class="search-actions"><button onclick="showRecentArticles()" class="button">返回最近论文</button></div>'
-                );
+            if (historicalArticles.length > 0) {
+                displayArticles(historicalArticles.slice(0, 6), archiveContainer);
+            } else {
+                archiveContainer.innerHTML = '<div class="no-articles">暂无历史论文</div>';
             }
         })
         .catch(error => {
-            container.innerHTML = `
+            archiveContainer.innerHTML = `
                 <div class="error-message">
-                    <p>搜索失败: ${error.message}</p>
-                    <button onclick="showRecentArticles()" class="button">返回最近论文</button>
+                    <p>加载历史论文失败: ${error.message}</p>
+                    <button onclick="loadArchiveArticles()" class="button">重试</button>
                 </div>
             `;
         });
 }
 
-// 显示最近论文
-function showRecentArticles() {
-    // 恢复标题
-    const recommendationTitle = document.querySelector('#recommendations h2');
-    if (recommendationTitle) {
-        recommendationTitle.textContent = '近期解读推荐';
-    }
+// 加载更多文章
+function loadMoreArticles() {
+    const container = document.getElementById('archive-papers-grid');
+    const loadMoreBtn = document.getElementById('load-more-btn');
     
-    // 移除搜索操作按钮
-    const searchActions = document.querySelector('.search-actions');
-    if (searchActions) {
-        searchActions.remove();
-    }
+    if (!container || !loadMoreBtn) return;
     
-    // 重新加载最近论文
-    initArticleDisplay();
+    loadMoreBtn.innerHTML = '<div class="spinner"></div><span>加载中...</span>';
+    loadMoreBtn.disabled = true;
+    
+    // 这里可以实现分页加载逻辑
+    // 暂时重新加载更多文章
+    fetchRecentArticles(60)
+        .then(articles => {
+            const today = new Date().toDateString();
+            const historicalArticles = articles.filter(article => {
+                const articleDate = new Date(article.date_processed).toDateString();
+                return articleDate !== today;
+            });
+            
+            displayArticles(historicalArticles, container);
+            
+            loadMoreBtn.innerHTML = '<span>加载更多</span><i class="fas fa-chevron-down"></i>';
+            loadMoreBtn.disabled = false;
+            
+            // 如果文章数量少于预期，隐藏加载更多按钮
+            if (historicalArticles.length < 20) {
+                loadMoreBtn.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            loadMoreBtn.innerHTML = '<span>加载失败，点击重试</span><i class="fas fa-exclamation-triangle"></i>';
+            loadMoreBtn.disabled = false;
+        });
 }
 
 // 页面加载完成后初始化
