@@ -1,5 +1,6 @@
 ## Latest arXiv Papers
 
+- 2025-06-09 [AdaCM2：自适应跨模态记忆缩减，解锁超长视频理解新姿势](generated_articles/2025-06-09_AdaCM2：自适应跨模态记忆缩减，解锁超长视频理解新姿势.txt)
 - 2025-06-07 [强化Token优化：DPO与PPO的巧妙融合，提升RLHF性能](generated_articles/2025-06-07_强化Token优化：DPO与PPO的巧妙融合，提升RLHF性能.txt)
 - 2025-06-06 [MICRO-ACT：用可执行的自推理缓解问答中的知识冲突](generated_articles/2025-06-06_MICRO-ACT：用可执行的自推理缓解问答中的知识冲突.txt)
 - 2025-06-06 [R2EC：让推荐模型像人一样“思考”](generated_articles/2025-06-06_R2EC：让推荐模型像人一样“思考”.txt)
