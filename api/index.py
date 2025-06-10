@@ -183,6 +183,66 @@ def search_articles():
         print(f"API Error: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/articles/by-date', methods=['GET'])
+def get_articles_by_date():
+    """按指定日期获取论文"""
+    try:
+        date_str = request.args.get('date', '')
+        limit = request.args.get('limit', 20, type=int)
+        
+        if not date_str:
+            return jsonify({"error": "请提供日期参数"}), 400
+        
+        # 验证日期格式
+        try:
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({"error": "日期格式错误，请使用 YYYY-MM-DD 格式"}), 400
+        
+        conn = connect_to_database()
+        if not conn:
+            return jsonify({"error": "数据库连接失败"}), 500
+        
+        cursor = conn.cursor()
+        
+        query = """
+            SELECT id, title, date_processed, tags, arxiv_id, pdf_url,
+                   LEFT(content, 300) as content_preview
+            FROM articles 
+            WHERE date_processed = %s
+            ORDER BY id DESC 
+            LIMIT %s;
+        """
+        
+        cursor.execute(query, (target_date, limit))
+        articles = cursor.fetchall()
+        
+        result = []
+        for article in articles:
+            result.append({
+                "id": article[0],
+                "title": article[1],
+                "date_processed": article[2].strftime('%Y-%m-%d') if article[2] else None,
+                "tags": article[3],
+                "arxiv_id": article[4],
+                "pdf_url": article[5],
+                "content_preview": article[6] + "..." if article[6] else ""
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            "success": True,
+            "data": result,
+            "total": len(result),
+            "date": date_str
+        })
+        
+    except Exception as e:
+        print(f"API Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     """获取数据库统计信息"""
@@ -246,6 +306,7 @@ def api_root():
             "/api/articles/recent",
             "/api/articles/{id}",
             "/api/articles/search",
+            "/api/articles/by-date",
             "/api/stats"
         ]
     })

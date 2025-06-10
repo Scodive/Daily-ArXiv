@@ -454,6 +454,24 @@ body.modal-open {
     letter-spacing: 0.5px;
 }
 
+.date-badge.latest {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 16px rgba(245, 87, 108, 0.5);
+    }
+    100% {
+        box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
+    }
+}
+
 .section-subtitle {
     font-size: 1.1rem;
     color: var(--gray-600);

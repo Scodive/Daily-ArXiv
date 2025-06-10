@@ -38,10 +38,10 @@ async function fetchRecentArticles(days = 7) {
         const response = await fetch(url);
         console.log('API响应状态:', response.status);
         
-        // 如果API失败，返回模拟数据进行测试
+        // 如果API失败，返回空数组
         if (!response.ok) {
-            console.warn('API失败，使用模拟数据');
-            return getMockArticles();
+            console.warn('API失败');
+            return [];
         }
         
         const data = await response.json();
@@ -54,13 +54,73 @@ async function fetchRecentArticles(days = 7) {
             throw new Error(data.error || '获取数据失败');
         }
     } catch (error) {
-        console.error('获取论文数据失败，使用模拟数据:', error);
-        return getMockArticles();
+        console.error('获取论文数据失败:', error);
+        return [];
     }
+}
+
+// 获取指定日期的论文
+async function fetchArticlesByDate(date) {
+    try {
+        const url = `${API_BASE_URL}/articles/by-date?date=${date}&limit=20`;
+        console.log('按日期获取论文 URL:', url);
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            return [];
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            return data.data;
+        } else {
+            return [];
+        }
+    } catch (error) {
+        console.error('按日期获取论文失败:', error);
+        return [];
+    }
+}
+
+// 智能获取今日论文（如果今日没有则往前查找）
+async function fetchTodayArticles() {
+    const today = new Date();
+    
+    // 从今天开始，往前查找最多7天
+    for (let i = 0; i < 7; i++) {
+        const checkDate = new Date(today);
+        checkDate.setDate(today.getDate() - i);
+        const dateString = checkDate.toISOString().split('T')[0];
+        
+        console.log(`检查日期 ${dateString} 的论文...`);
+        
+        const articles = await fetchArticlesByDate(dateString);
+        
+        if (articles && articles.length > 0) {
+            console.log(`在 ${dateString} 找到 ${articles.length} 篇论文`);
+            return {
+                articles: articles,
+                date: dateString,
+                isToday: i === 0
+            };
+        }
+    }
+    
+    console.log('最近7天都没有找到论文');
+    return {
+        articles: [],
+        date: null,
+        isToday: false
+    };
 }
 
 // 模拟数据函数
 function getMockArticles() {
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 24*60*60*1000).toISOString().split('T')[0];
+    
     return [
         {
             id: 1,
@@ -69,7 +129,7 @@ function getMockArticles() {
             tags: "#特征嵌入 #可解释性 #聚类 #模型对齐 #机器学习",
             arxiv_id: "2506.06231",
             pdf_url: "https://arxiv.org/pdf/2506.06231.pdf",
-            date_processed: "2025-06-09"
+            date_processed: today
         },
         {
             id: 2,
@@ -78,7 +138,25 @@ function getMockArticles() {
             tags: "#长视频理解 #跨模态学习 #自适应记忆 #人工智能 #视频分析",
             arxiv_id: "2506.06232",
             pdf_url: "https://arxiv.org/pdf/2506.06232.pdf",
-            date_processed: "2025-06-09"
+            date_processed: today
+        },
+        {
+            id: 3,
+            title: "Transformer架构的记忆优化：解决长序列建模挑战",
+            content: "研究团队提出了一种新颖的Transformer记忆优化策略，通过分层注意力机制和动态上下文压缩技术，显著提升了长序列处理效率。该方法在保持模型性能的同时，将内存使用量降低了60%以上，为处理超长文档和多轮对话提供了实用解决方案。",
+            tags: "#Transformer #记忆优化 #长序列建模 #注意力机制 #深度学习",
+            arxiv_id: "2506.06233",
+            pdf_url: "https://arxiv.org/pdf/2506.06233.pdf",
+            date_processed: yesterday
+        },
+        {
+            id: 4,
+            title: "量子增强机器学习：QAOA算法在组合优化中的新突破",
+            content: "本研究展示了量子近似优化算法(QAOA)在解决复杂组合优化问题中的显著优势。通过改进的量子线路设计和噪声缓解技术，该方法在图着色、最大割等NP-hard问题上达到了超越经典算法的性能表现。",
+            tags: "#量子计算 #机器学习 #组合优化 #QAOA #量子算法",
+            arxiv_id: "2506.06234",
+            pdf_url: "https://arxiv.org/pdf/2506.06234.pdf",
+            date_processed: yesterday
         }
     ];
 }
@@ -89,14 +167,7 @@ async function fetchArticleDetail(articleId) {
         const response = await fetch(`${API_BASE_URL}/articles/${articleId}`);
         
         if (!response.ok) {
-            // API失败时，从模拟数据中查找
-            const mockArticles = getMockArticles();
-            const article = mockArticles.find(a => a.id == articleId);
-            if (article) {
-                return article;
-            } else {
-                throw new Error('论文不存在');
-            }
+            throw new Error('论文不存在');
         }
         
         const data = await response.json();
@@ -107,15 +178,8 @@ async function fetchArticleDetail(articleId) {
             throw new Error(data.error || '获取论文详情失败');
         }
     } catch (error) {
-        console.error('获取论文详情失败，尝试模拟数据:', error);
-        // 从模拟数据中查找
-        const mockArticles = getMockArticles();
-        const article = mockArticles.find(a => a.id == articleId);
-        if (article) {
-            return article;
-        } else {
-            throw new Error('无法获取论文详情');
-        }
+        console.error('获取论文详情失败:', error);
+        throw new Error('无法获取论文详情');
     }
 }
 
@@ -125,13 +189,7 @@ async function searchArticles(keyword) {
         const response = await fetch(`${API_BASE_URL}/articles/search?keyword=${encodeURIComponent(keyword)}&limit=20`);
         
         if (!response.ok) {
-            // API失败时，在模拟数据中搜索
-            const mockArticles = getMockArticles();
-            return mockArticles.filter(article => 
-                article.title.toLowerCase().includes(keyword.toLowerCase()) ||
-                article.content.toLowerCase().includes(keyword.toLowerCase()) ||
-                article.tags.toLowerCase().includes(keyword.toLowerCase())
-            );
+            return [];
         }
         
         const data = await response.json();
@@ -142,14 +200,8 @@ async function searchArticles(keyword) {
             throw new Error(data.error || '搜索失败');
         }
     } catch (error) {
-        console.error('搜索失败，使用模拟数据:', error);
-        // 在模拟数据中搜索
-        const mockArticles = getMockArticles();
-        return mockArticles.filter(article => 
-            article.title.toLowerCase().includes(keyword.toLowerCase()) ||
-            article.content.toLowerCase().includes(keyword.toLowerCase()) ||
-            article.tags.toLowerCase().includes(keyword.toLowerCase())
-        );
+        console.error('搜索失败:', error);
+        return [];
     }
 }
 
@@ -385,16 +437,37 @@ function initArticleDisplay() {
         return;
     }
     
-    // 显示今日论文（最近1天）
+    // 显示今日论文（智能查找最新有数据的日期）
     if (dailyContainer) {
         dailyContainer.innerHTML = '<div class="loading-articles"><div class="spinner"></div><p>正在加载今日论文...</p></div>';
         
-        fetchRecentArticles(1)
-            .then(articles => {
-                if (articles.length > 0) {
-                    displayArticles(articles, dailyContainer, 'daily');
+        fetchTodayArticles()
+            .then(result => {
+                if (result.articles.length > 0) {
+                    // 按日期排序，最新的在前，最多显示4篇
+                    const sortedArticles = result.articles.sort((a, b) => new Date(b.date_processed) - new Date(a.date_processed));
+                    const displayArticles_limited = sortedArticles.slice(0, 4);
+                    displayArticles(displayArticles_limited, dailyContainer, 'daily');
+                    
+                    // 更新页面顶部的日期显示
+                    const dateElement = document.getElementById('today-date');
+                    if (dateElement && result.date) {
+                        const displayDate = new Date(result.date);
+                        const dateText = displayDate.toLocaleDateString('zh-CN', {
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                        
+                        if (result.isToday) {
+                            dateElement.textContent = dateText;
+                            dateElement.className = 'date-badge';
+                        } else {
+                            dateElement.textContent = dateText + ' (最新)';
+                            dateElement.className = 'date-badge latest';
+                        }
+                    }
                 } else {
-                    dailyContainer.innerHTML = '<div class="no-articles">今日暂无新论文</div>';
+                    dailyContainer.innerHTML = '<div class="no-articles">暂无最新论文</div>';
                 }
             })
             .catch(error => {
