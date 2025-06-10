@@ -159,86 +159,195 @@ def sanitize_filename(filename):
     return filename[:100] # 限制文件名长度
 
 # 数据库连接函数
-def connect_to_database():
-    """连接到PostgreSQL数据库"""
-    try:
-        conn = psycopg2.connect(
-            host="dbprovider.ap-southeast-1.clawcloudrun.com",
-            port=49674,
-            database="postgres",
-            user="postgres",
-            password="sbdx497p",
-            sslmode="prefer"
-        )
-        return conn
-    except Exception as e:
-        print(f"数据库连接失败: {e}")
-        return None
+def connect_to_database(max_retries=3):
+    """连接到PostgreSQL数据库，带重试机制"""
+    for attempt in range(max_retries):
+        try:
+            print(f"正在尝试连接数据库 (第{attempt + 1}次)...")
+            conn = psycopg2.connect(
+                host="dbprovider.ap-southeast-1.clawcloudrun.com",
+                port=49674,
+                database="postgres",
+                user="postgres",
+                password="sbdx497p",
+                sslmode="prefer",
+                connect_timeout=10
+            )
+            print("✅ 数据库连接成功")
+            return conn
+        except Exception as e:
+            print(f"❌ 数据库连接失败 (第{attempt + 1}次): {e}")
+            if attempt < max_retries - 1:
+                print("等待5秒后重试...")
+                import time
+                time.sleep(5)
+            else:
+                print("所有重试均失败")
+    return None
 
 def extract_arxiv_id_from_url(pdf_url):
     """从ArXiv PDF URL中提取论文ID"""
     try:
-        # ArXiv URL格式：https://arxiv.org/pdf/2310.06825.pdf
-        match = re.search(r'arxiv\.org/pdf/([^\.]+)', pdf_url)
+        print(f"🔍 正在从URL提取ArXiv ID: {pdf_url}")
+        # ArXiv URL格式：https://arxiv.org/pdf/2310.06825.pdf 或 https://arxiv.org/pdf/2310.06825v1.pdf
+        match = re.search(r'arxiv\.org/pdf/([0-9]{4}\.[0-9]{4,5})(v\d+)?\.pdf', pdf_url)
         if match:
-            return match.group(1)
-        return None
-    except:
+            arxiv_id = match.group(1)
+            print(f"✅ 提取到ArXiv ID: {arxiv_id}")
+            return arxiv_id
+        else:
+            print("⚠️  未能从URL中提取ArXiv ID")
+            return None
+    except Exception as e:
+        print(f"❌ 提取ArXiv ID失败: {e}")
         return None
 
-def insert_article_to_database(title, content, tags, arxiv_id, pdf_url, filename, date_processed):
-    """将文章插入到数据库"""
-    try:
-        conn = connect_to_database()
-        if not conn:
-            print("❌ 数据库连接失败，无法保存到数据库")
-            return False
-        
-        cursor = conn.cursor()
-        
-        # 检查是否已存在相同的文章（基于arxiv_id或标题）
-        if arxiv_id:
-            cursor.execute("SELECT id FROM articles WHERE arxiv_id = %s", (arxiv_id,))
-        else:
-            cursor.execute("SELECT id FROM articles WHERE title = %s", (title,))
-        
-        existing = cursor.fetchone()
-        if existing:
-            print(f"⚠️  论文已存在于数据库中 (ID: {existing[0]})，跳过插入")
-            cursor.close()
-            conn.close()
-            return True
-        
-        # 插入新文章
-        insert_sql = """
-        INSERT INTO articles (title, arxiv_id, pdf_url, filename, date_processed, 
-                            tags, content, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        RETURNING id;
-        """
-        
-        cursor.execute(insert_sql, (
-            title,
-            arxiv_id,
-            pdf_url,
-            filename,
-            date_processed,
-            tags,
-            content
-        ))
-        
-        new_id = cursor.fetchone()[0]
-        conn.commit()
-        
-        cursor.close()
-        conn.close()
-        
-        print(f"✅ 文章已成功保存到数据库 (ID: {new_id})")
-        return True
-        
-    except Exception as e:
-        print(f"❌ 保存到数据库失败: {e}")
+def validate_article_data(title, content, tags, arxiv_id, pdf_url, filename, date_processed):
+    """验证文章数据的完整性"""
+    issues = []
+    
+    if not title or len(title.strip()) == 0:
+        issues.append("标题为空")
+    elif len(title) > 500:
+        issues.append(f"标题过长 ({len(title)} 字符，最大500)")
+    
+    if not content or len(content.strip()) == 0:
+        issues.append("内容为空")
+    elif len(content) > 50000:
+        issues.append(f"内容过长 ({len(content)} 字符，最大50000)")
+    
+    if not pdf_url or not (pdf_url.startswith("https://arxiv.org/") or pdf_url.startswith("http://arxiv.org/")):
+        issues.append("PDF URL格式无效")
+    
+    if not filename or len(filename) == 0:
+        issues.append("文件名为空")
+    
+    if not date_processed:
+        issues.append("处理日期为空")
+    
+    return issues
+
+def insert_article_to_database(title, content, tags, arxiv_id, pdf_url, filename, date_processed, max_retries=3):
+    """将文章插入到数据库，带数据验证和重试机制"""
+    
+    # 数据验证
+    print("🔍 正在验证文章数据...")
+    validation_issues = validate_article_data(title, content, tags, arxiv_id, pdf_url, filename, date_processed)
+    if validation_issues:
+        print("❌ 数据验证失败:")
+        for issue in validation_issues:
+            print(f"   - {issue}")
         return False
+    
+    print("✅ 数据验证通过")
+    
+    # 清理和准备数据
+    title = title.strip()[:500]  # 确保标题不超长
+    content = content.strip()
+    tags = tags.strip() if tags else ""
+    filename = filename.strip()
+    
+    # 带重试的数据库操作
+    for attempt in range(max_retries):
+        conn = None
+        cursor = None
+        try:
+            print(f"🗄️  正在保存到数据库 (第{attempt + 1}次)...")
+            
+            conn = connect_to_database()
+            if not conn:
+                print(f"❌ 数据库连接失败 (第{attempt + 1}次)")
+                if attempt < max_retries - 1:
+                    print("等待3秒后重试...")
+                    import time
+                    time.sleep(3)
+                    continue
+                else:
+                    return False
+            
+            cursor = conn.cursor()
+            
+            # 检查是否已存在相同的文章
+            print("🔎 检查重复文章...")
+            print(f"   - 检查标题: {title[:50]}...")
+            print(f"   - ArXiv ID: {arxiv_id}")
+            
+            existing = None
+            if arxiv_id:
+                print(f"   - 使用ArXiv ID检查重复: {arxiv_id}")
+                cursor.execute("SELECT id, title FROM articles WHERE arxiv_id = %s", (arxiv_id,))
+                result = cursor.fetchone()
+                if result:
+                    existing_id, existing_title = result
+                    print(f"   - 找到重复ArXiv ID: ID={existing_id}, 标题={existing_title[:50]}...")
+                    existing = result
+            
+            if not existing:
+                print(f"   - 使用标题检查重复")
+                cursor.execute("SELECT id, title FROM articles WHERE title = %s", (title,))
+                result = cursor.fetchone()
+                if result:
+                    existing_id, existing_title = result
+                    print(f"   - 找到重复标题: ID={existing_id}, 标题={existing_title[:50]}...")
+                    existing = result
+            
+            if existing:
+                print(f"⚠️  论文已存在于数据库中 (ID: {existing[0]})，跳过插入")
+                return True
+            
+            # 插入新文章
+            print("📝 插入新文章到数据库...")
+            insert_sql = """
+            INSERT INTO articles (title, arxiv_id, pdf_url, filename, date_processed, 
+                                tags, content, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            RETURNING id;
+            """
+            
+            cursor.execute(insert_sql, (
+                title,
+                arxiv_id,
+                pdf_url,
+                filename,
+                date_processed,
+                tags,
+                content
+            ))
+            
+            new_id = cursor.fetchone()[0]
+            conn.commit()
+            
+            print(f"✅ 文章已成功保存到数据库 (ID: {new_id})")
+            
+            # 验证插入是否成功
+            cursor.execute("SELECT title FROM articles WHERE id = %s", (new_id,))
+            verification = cursor.fetchone()
+            if verification:
+                print(f"✅ 数据库插入验证成功: {verification[0][:50]}...")
+                return True
+            else:
+                print("❌ 数据库插入验证失败")
+                return False
+            
+        except psycopg2.Error as e:
+            print(f"❌ 数据库操作失败 (第{attempt + 1}次): {e}")
+            if conn:
+                conn.rollback()
+        except Exception as e:
+            print(f"❌ 保存到数据库失败 (第{attempt + 1}次): {e}")
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+        
+        if attempt < max_retries - 1:
+            print("等待5秒后重试...")
+            import time
+            time.sleep(5)
+    
+    print("❌ 所有数据库保存尝试均失败")
+    return False
 
 # --- 主程序 ---
 if __name__ == "__main__":
