@@ -23,7 +23,7 @@ import psycopg2
 # 建议使用环境变量或其他安全方式管理您的API密钥。
 API_KEY = 'AIzaSyDy9pYAEW7e2Ewk__9TCHAD5X_G1VhCtVw' # 您提供的API Key
 # 您提供的模型名称。如果此模型不可用，您可能需要替换为公开可用的模型，例如 'gemini-1.5-flash-latest'
-MODEL_NAME = 'gemini-2.0-flash-exp'
+MODEL_NAME = 'gemini-2.5-flash-lite-preview-06-17'
 GEMINI_API_URL = f'https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}'
 
 # --- 辅助函数 ---
@@ -67,7 +67,7 @@ def generate_xiaohongshu_post(paper_text):
 
     # 为Gemini API精心设计的Prompt (使用完整文本，并移除摘要提示)
     # 用户已将字数调整为800-900
-    prompt = f"""作为一位资深的科技内容创作者和分析师，你的任务是根据以下科研论文的文本，撰写一篇既专业准确又不失趣味性的科普解读文章，目标读者是对科技有一定兴趣的普通大众。文章字数在800-900中文字符左右。
+    prompt = f"""作为一位资深的科技内容创作者和分析师，你的任务是根据以下科研论文的文本，撰写一篇既专业准确又不失趣味性的科普解读文章，目标读者是对科技有一定兴趣的普通大众。文章字数在700-800中文字符左右，不能超出字数，一定要少于800字。
 
 请遵循以下指导方针：
 
@@ -94,7 +94,7 @@ def generate_xiaohongshu_post(paper_text):
 输出格式约定：
 第一行：`标题：[你创作的标题]`
 第二行开始：文章正文。
-最后一行：`标签：[ #标签1 #标签2 #标签3 ]`
+最后一行：`#标签1 #标签2 #标签3`
 
 以下是论文的文本内容：
 ---
